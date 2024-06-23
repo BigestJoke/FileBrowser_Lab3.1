@@ -7,15 +7,25 @@
 #include <QMap>
 #include <QStringList>
 
-// Функция для рекурсивного подсчета размеров файлов
+// Функция для подсчета размеров файлов и директорий
 qint64 getTotalSize(const QDir &dir, QVector<QPair<QString, qint64>> &fileSizes, QMap<QString, qint64> &fileTypes) {
     qint64 totalSize = 0;
-    QFileInfoList list = dir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot | QDir::AllDirs);
+    QFileInfoList list = dir.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
 
     foreach (QFileInfo fileInfo, list) {
         if (fileInfo.isDir()) {
-            totalSize += getTotalSize(QDir(fileInfo.absoluteFilePath()), fileSizes, fileTypes);
+            // Если это директория, добавляем ее размер как 0 и название
+            QString dirPath = fileInfo.absoluteFilePath();
+            qint64 dirSize = 0;
+            QDir subDir(dirPath);
+            QFileInfoList subList = subDir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
+            foreach (QFileInfo subFileInfo, subList) {
+                dirSize += subFileInfo.size();
+            }
+            totalSize += dirSize;
+            fileSizes.append(qMakePair(dirPath, dirSize));
         } else {
+            // Если это файл, добавляем его размер
             qint64 fileSize = fileInfo.size();
             totalSize += fileSize;
             fileSizes.append(qMakePair(fileInfo.absoluteFilePath(), fileSize));
