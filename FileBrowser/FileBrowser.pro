@@ -7,9 +7,14 @@ CONFIG -= app_bundle
 
 TEMPLATE = app
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    FileSizeCalculator.cpp \
+    FileTypeSizeCalculator.cpp
 
-HEADERS +=
+HEADERS += \
+    FileSizeCalculator.h \
+    FileTypeSizeCalculator.h \
+    ISizeCalculator.h
 
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
