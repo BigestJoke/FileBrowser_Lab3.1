@@ -28,26 +28,27 @@ int main(int argc, char *argv[]) {
     Context context; // Создание объекта Context.
     ISizeCalculator *calculator = nullptr; // Указатель на стратегию.
 
-    try {
-        // Выбор стратегии в зависимости от выбора пользователя.
-        if (methodChoice == "1") {
-            calculator = new FileSizeCalculator();
-        } else if (methodChoice == "2") {
-            calculator = new FileTypeSizeCalculator();
-        } else {
-            out << "Invalid choice!" << Qt::endl;
-            return 1;
-        }
+    // Выбор стратегии в зависимости от выбора пользователя.
+    if (methodChoice == "1") {
+        calculator = new FileSizeCalculator();
+    } else if (methodChoice == "2") {
+        calculator = new FileTypeSizeCalculator();
+    } else {
+        out << "Invalid choice!" << Qt::endl;
+        return 1; // Возвращаем код ошибки, если выбор пользователя некорректен.
+    }
 
+    // Проверка на nullptr перед установкой стратегии
+    if (calculator) {
         context.setStrategy(calculator); // Установка стратегии в Context.
         context.executeStrategy(dir, out); // Выполнение стратегии.
-    } catch (const std::exception &e) {
-        out << "An error occurred: " << e.what() << Qt::endl;
-    } catch (...) {
-        out << "An unknown error occurred." << Qt::endl;
+    } else {
+        out << "Failed to create calculator object." << Qt::endl;
+        return 1; // Возвращаем код ошибки, если не удалось создать объект стратегии.
     }
 
     delete calculator; // Освобождение памяти, выделенной под стратегию.
+
 
     return a.exec(); // Запуск главного цикла приложения.
 }
