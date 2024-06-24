@@ -12,6 +12,7 @@ SOURCES += main.cpp \
     FileTypeSizeCalculator.cpp
 
 HEADERS += \
+    Context.h \
     FileSizeCalculator.h \
     FileTypeSizeCalculator.h \
     ISizeCalculator.h

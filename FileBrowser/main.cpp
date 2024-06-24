@@ -4,6 +4,7 @@
 #include "ISizeCalculator.h"
 #include "FileSizeCalculator.h"
 #include "FileTypeSizeCalculator.h"
+#include "Context.h"
 
 int main(int argc, char *argv[]) {
     QCoreApplication a(argc, argv);
@@ -24,6 +25,7 @@ int main(int argc, char *argv[]) {
     out.flush();
     QString methodChoice = in.readLine().trimmed();
 
+    Context context;
     ISizeCalculator *calculator = nullptr;
 
     if (methodChoice == "1") {
@@ -35,7 +37,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    calculator->calculate(dir, out);
+    context.setStrategy(calculator);
+    context.executeStrategy(dir, out);
     delete calculator;
 
     return a.exec();
