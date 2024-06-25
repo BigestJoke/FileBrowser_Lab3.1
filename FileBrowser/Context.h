@@ -1,27 +1,28 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
-#include <QDir>
-#include <QTextStream>
-#include "ISizeCalculator.h"
+#include <QString>
+#include <QMap>
+#include <memory>
+#include "ICalculationStrategy.h"
 
-// Класс Context хранит указатель на стратегию и делегирует ей выполнение.
-class Context {
+using namespace std;
+
+class Context
+{
 public:
-    // Метод для установки стратегии.
-    void setStrategy(ISizeCalculator *strategy) {
-        this->strategy = strategy;
+    Context(unique_ptr<ICalculationStrategy> st) : strategy(std::move(st)) {}
+
+    void setStrategy(unique_ptr<ICalculationStrategy> str) {
+        this->strategy = std::move(str);
     }
 
-    // Метод для выполнения стратегии.
-    void executeStrategy(const QDir &dir, QTextStream &out) {
-        if (strategy) {
-            strategy->calculate(dir, out);
-        }
+    QMap<QString, int> calculate(const QString& path) {
+        return strategy->calculate(path);
     }
 
 private:
-    ISizeCalculator *strategy = nullptr; // Указатель на текущую стратегию.
+    unique_ptr<ICalculationStrategy> strategy;
 };
 
 #endif // CONTEXT_H

@@ -1,63 +1,50 @@
-#include "FileSizeCalculator.h"
-#include <QFileInfo>
-#include <QDirIterator>
+#include "FolderSizeStrategy.h"
 
-// Метод для получения общего размера файлов в директории и заполнения вектора с размерами файлов.
-qint64 FileSizeCalculator::getTotalSize(const QDir &dir, QVector<QPair<QString, qint64>> &fileSizes) {
-    qint64 totalSize = 0;
+int calcDirSize(const QString& path) {
+    int dirSize = 0;
+    QDir dir(path);
     QFileInfoList list = dir.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
 
-    foreach (QFileInfo fileInfo, list) {
+    for (auto it = list.constBegin(); it != list.constEnd(); ++it) {
+        const QFileInfo& fileInfo = *it;
         if (fileInfo.isDir()) {
-            QString dirPath = fileInfo.absoluteFilePath();
-            qint64 dirSize = 0;
-            QDir subDir(dirPath);
-            QFileInfoList subList = subDir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
-            foreach (QFileInfo subFileInfo, subList) {
-                dirSize += subFileInfo.size();
-            }
-            totalSize += dirSize;
-            fileSizes.append(qMakePair(dirPath, dirSize));
+            QString subDirPath = fileInfo.absoluteFilePath();
+            dirSize += calcDirSize(subDirPath);
         } else {
-            qint64 fileSize = fileInfo.size();
-            totalSize += fileSize;
-            fileSizes.append(qMakePair(fileInfo.absoluteFilePath(), fileSize));
+            dirSize += fileInfo.size();
         }
     }
-
-    return totalSize;
+    return dirSize;
 }
 
-// Метод для вывода размеров файлов в процентах от общего размера.
-void FileSizeCalculator::printFileSizes(const QVector<QPair<QString, qint64>> &fileSizes, qint64 totalSize, QTextStream &out) {
-    out << "File sizes as a percentage of the total size:" << Qt::endl;
-    for (const auto &fileSizePair : fileSizes) {
-        QString filePath = fileSizePair.first;
-        qint64 fileSize = fileSizePair.second;
-        double percentage = (double(fileSize) / totalSize) * 100.0;
-        if (percentage < 0.01 && fileSize > 0) {
-            out << filePath << ": < 0.01%" << Qt::endl;
-        } else {
-            out << filePath << ": " << QString::number(percentage, 'f', 2) << "%" << Qt::endl;
-        }
-    }
-}
+QMap<QString, int> FolderSizeStrategy::calculate(const QString& path) {
+    QMap<QString, int> map;
+    int rootDirSize = calcDirSize(path); // Размер корневой директории
+    QFileInfo file(path);
+    int folder_size = 0;
 
-// Реализация метода calculate для подсчета размеров файлов.
-void FileSizeCalculator::calculate(const QDir &dir, QTextStream &out) {
-    try {
-        QVector<QPair<QString, qint64>> fileSizes;
-        qint64 totalSize = getTotalSize(dir, fileSizes);
+    if (file.isDir()) {
+        QDir dir(path);
+        QFileInfoList fileList = dir.entryInfoList(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
 
-        if (totalSize == 0) {
-            out << "No files found in the directory!" << Qt::endl;
-            return;
+        for (auto it = fileList.constBegin(); it != fileList.constEnd(); ++it) {
+            const QFileInfo& fileInfo = *it;
+            folder_size += fileInfo.size();
         }
 
-        printFileSizes(fileSizes, totalSize, out);
-    } catch (const std::exception &e) {
-        out << "An error occurred: " << e.what() << Qt::endl;
-    } catch (...) {
-        out << "An unknown error occurred." << Qt::endl;
+        QString currentDirName = dir.dirName();
+        map.insert(currentDirName, folder_size);
+
+        QStringList subDirList = dir.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+        for (auto it = subDirList.constBegin(); it != subDirList.constEnd(); ++it) {
+            QString subDirName = *it;
+            QString subDirPath = path + "/" + subDirName;
+            int subDirSize = calcDirSize(subDirPath);
+            map.insert(subDirName, subDirSize);
+        }
+
+        // Добавляем корневую директорию как 100% от ее собственного размера
+        map.insert(dir.dirName(), rootDirSize);
     }
+    return map;
 }

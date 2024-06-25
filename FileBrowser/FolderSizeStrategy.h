@@ -1,20 +1,16 @@
-#ifndef FILESIZECALCULATOR_H
-#define FILESIZECALCULATOR_H
+#ifndef FOLDERSIZESTRATEGY_H
+#define FOLDERSIZESTRATEGY_H
 
-#include "ISizeCalculator.h"
+#include "ICalculationStrategy.h"
+#include <QFileInfo>
+#include <QDir>
+#include <QMap>
 
-// Класс FileSizeCalculator реализует стратегию подсчета размеров по файлам.
-class FileSizeCalculator : public ISizeCalculator {
+class FolderSizeStrategy : public ICalculationStrategy {
 public:
-    // Реализация метода calculate для подсчета размеров файлов.
-    void calculate(const QDir &dir, QTextStream &out) override;
-
-private:
-    // Метод для получения общего размера файлов в директории и заполнения вектора с размерами файлов.
-    qint64 getTotalSize(const QDir &dir, QVector<QPair<QString, qint64>> &fileSizes);
-
-    // Метод для вывода размеров файлов в процентах от общего размера.
-    void printFileSizes(const QVector<QPair<QString, qint64>> &fileSizes, qint64 totalSize, QTextStream &out);
+    QMap<QString, int> calculate(const QString& path) override;
 };
 
-#endif // FILESIZECALCULATOR_H
+int calcDirSize(const QString& path);
+
+#endif // FOLDERSIZESTRATEGY_H

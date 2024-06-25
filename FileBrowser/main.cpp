@@ -1,54 +1,68 @@
-#include <QCoreApplication>
-#include <QDir>
-#include <QTextStream>
-#include "ISizeCalculator.h"
-#include "FileSizeCalculator.h"
-#include "FileTypeSizeCalculator.h"
+#include <iostream>
 #include "Context.h"
+#include "FolderSizeStrategy.h"
+#include "FileTypeSizeStrategy.h"
+#include <memory>
+#include <QString>
+#include <QDir>
 
-int main(int argc, char *argv[]) {
-    QCoreApplication a(argc, argv); // Инициализация приложения.
-    QTextStream out(stdout); // Поток для вывода данных в консоль.
-    QTextStream in(stdin); // Поток для ввода данных из консоли.
+using namespace std;
 
-    out << "Enter directory path: ";
-    out.flush(); // Принудительная отправка данных в консоль.
-    QString dirPath = in.readLine(); // Считывание пути к директории.
+QString percentageCalc(int size, int total_size) {
+    if (total_size != 0 && size != 0) {
+        double percent = 100.0 * size / total_size;
+        if (percent < 0.01) return "< 0.01 %";
+        else return QString::number(percent, 'f', 2) + " %";
+    }
+    else {
+        return "0.00 %";
+    }
+}
 
-    QDir dir(dirPath); // Создание объекта QDir для работы с директориями.
-    if (!dir.exists()) {
-        out << "Directory does not exist!" << Qt::endl;
+int main() {
+    cout << "Enter the path to the directory: ";
+    string path;
+    getline(cin, path);
+
+    cout << "Select a strategy for calculating file sizes: 1 - grouping by folders, 2 - grouping by types. ";
+    int strategy;
+    cin >> strategy;
+
+    unique_ptr<Context> calculator;
+    switch (strategy) {
+    case 1:
+        calculator = make_unique<Context>(make_unique<FolderSizeStrategy>());
+        break;
+    case 2:
+        calculator = make_unique<Context>(make_unique<FileTypeSizeStrategy>());
+        break;
+    default:
+        cout << "Wrong strategy." << endl;
         return 1;
     }
 
-    out << "Choose calculation method (1 - by files, 2 - by file types): ";
-    out.flush();
-    QString methodChoice = in.readLine().trimmed(); // Считывание выбора пользователя.
-
-    Context context; // Создание объекта Context.
-    ISizeCalculator *calculator = nullptr; // Указатель на стратегию.
-
-    // Выбор стратегии в зависимости от выбора пользователя.
-    if (methodChoice == "1") {
-        calculator = new FileSizeCalculator();
-    } else if (methodChoice == "2") {
-        calculator = new FileTypeSizeCalculator();
-    } else {
-        out << "Invalid choice!" << Qt::endl;
-        return 1; // Возвращаем код ошибки, если выбор пользователя некорректен.
+    QString qPath = QString::fromStdString(path);
+    QDir dir(qPath);
+    if (!dir.exists()) {
+        cout << "Directory doesn't exist." << endl;
+        return 1;
     }
 
-    // Проверка на nullptr перед установкой стратегии
-    if (calculator) {
-        context.setStrategy(calculator); // Установка стратегии в Context.
-        context.executeStrategy(dir, out); // Выполнение стратегии.
+    QMap<QString, int> result = calculator->calculate(qPath);
+    int totalSize = calcDirSize(qPath);
+
+    if (result.isEmpty()) {
+        cout << "Current Directory: " << qPath.toStdString() << "  Size: 0 KB " << " Percentage: 0.00%" << endl;
     } else {
-        out << "Failed to create calculator object." << Qt::endl;
-        return 1; // Возвращаем код ошибки, если не удалось создать объект стратегии.
+        for (auto it = result.begin(); it != result.end(); ++it) {
+            QString name = it.key();
+            int size = it.value();
+            QString percentage = percentageCalc(size, totalSize);
+            cout << "Name: " << name.toStdString()
+                 << "  Size: " << size / 1024 << " KB"
+                 << "  Percentage: " << percentage.toStdString() << endl;
+        }
     }
 
-    delete calculator; // Освобождение памяти, выделенной под стратегию.
-
-
-    return a.exec(); // Запуск главного цикла приложения.
+    return 0;
 }
